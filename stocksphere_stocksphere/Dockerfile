@@ -1,10 +1,25 @@
 # Build stage
-FROM maven:3.8.4-openjdk-17 AS build
-COPY . .
-RUN mvn clean package -DskipTests
+FROM maven:3.9.6-eclipse-temurin-17 AS build
+WORKDIR /app
+
+COPY pom.xml .
+COPY .mvn .mvn
+COPY mvnw .
+RUN chmod +x mvnw
+
+RUN ./mvnw dependency:go-offline || true
+
+COPY src src
+
+RUN ./mvnw clean package -DskipTests
 
 # Run stage
-FROM openjdk:17-jdk-slim
-COPY --from=build /target/*.jar app.jar
+FROM eclipse-temurin:17-jre
+
+WORKDIR /app
+
+COPY --from=build /app/target/*.jar app.jar
+
 EXPOSE 8080
-ENTRYPOINT ["java","-jar","/app.jar"]
+
+ENTRYPOINT ["java","-jar","app.jar"]
